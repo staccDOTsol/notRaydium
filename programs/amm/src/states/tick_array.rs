@@ -828,7 +828,7 @@ pub mod tick_array_test {
                 fee_growth_global_1_x64,
             );
 
-            println!(
+            /*println!(
                 "inside_delta_0:{},fee_growth_inside_0_after:{},fee_growth_inside_0_before:{}",
                 fee_growth_inside_0_after.wrapping_sub(fee_growth_inside_0_before),
                 fee_growth_inside_0_after,
@@ -839,7 +839,7 @@ pub mod tick_array_test {
                 fee_growth_inside_1_after.wrapping_sub(fee_growth_inside_1_before),
                 fee_growth_inside_1_after,
                 fee_growth_inside_1_before
-            );
+            );*/
             (
                 fee_growth_inside_0_after.wrapping_sub(fee_growth_inside_0_before),
                 fee_growth_inside_1_after.wrapping_sub(fee_growth_inside_1_before),
@@ -1159,12 +1159,12 @@ pub mod tick_array_test {
                 &build_reward_infos(reward_growth_global_x64),
             )[0];
 
-            println!(
+            /*println!(
                 "inside_delta:{}, reward_growth_inside_after:{}, reward_growth_inside_before:{}",
                 reward_growth_inside_after.wrapping_sub(reward_growth_inside_before),
                 reward_growth_inside_after,
                 reward_growth_inside_before,
-            );
+            );*/
 
             reward_growth_inside_after.wrapping_sub(reward_growth_inside_before)
         }

@@ -329,18 +329,18 @@ pub enum CommandsName {
         authority: Option<Pubkey>,
         #[arg(short, long)]
         token_2022: bool,
-        #[arg(short, long)]
-        enable_freeze: bool,
-        #[arg(short, long)]
-        enable_close: bool,
-        #[arg(short, long)]
-        enable_non_transferable: bool,
-        #[arg(short, long)]
-        enable_permanent_delegate: bool,
+        #[arg(long)]
+        freeze: bool,
+        #[arg(long)]
+        close: bool,
+        #[arg(long)]
+        transfer: bool,
+        #[arg(long)]
+        dellie: bool,
         rate_bps: Option<i16>,
         default_account_state: Option<String>,
-        transfer_fee: Option<Vec<u64>>,
         confidential_transfer_auto_approve: Option<bool>,
+        transfer_fee: Option<Vec<u64>>,
     },
     NewToken {
         mint: Pubkey,
@@ -525,6 +525,11 @@ fn main() -> Result<()> {
     println!("Starting...");
     let client_config = "client_config.ini";
     let pool_config = load_cfg(&client_config.to_string()).unwrap();
+    let pool_config_s = ClientConfig {
+        mint0: pool_config.mint1,
+        mint1: pool_config.mint0,
+        ..pool_config.clone()
+    };
     // Admin and cluster params.
     let payer = read_keypair_file(&pool_config.payer_path)?;
     let admin = read_keypair_file(&pool_config.admin_path)?;
@@ -544,10 +549,10 @@ fn main() -> Result<()> {
             authority,
             decimals,
             token_2022,
-            enable_freeze,
-            enable_close,
-            enable_non_transferable,
-            enable_permanent_delegate,
+            freeze,
+            close,
+            transfer,
+            dellie,
             rate_bps,
             default_account_state,
             transfer_fee,
@@ -563,14 +568,14 @@ fn main() -> Result<()> {
             } else {
                 payer.pubkey()
             };
-            let freeze_authority = if enable_freeze { Some(authority) } else { None };
+            let freeze_authority = if freeze { Some(authority) } else { None };
             let mut extensions = vec![];
-            if enable_close {
+            if close {
                 extensions.push(ExtensionInitializationParams::MintCloseAuthority {
                     close_authority: Some(authority),
                 });
             }
-            if enable_permanent_delegate {
+            if dellie {
                 extensions.push(ExtensionInitializationParams::PermanentDelegate {
                     delegate: authority,
                 });
@@ -583,7 +588,7 @@ fn main() -> Result<()> {
             }
             if let Some(state) = default_account_state {
                 assert!(
-                    enable_freeze,
+                    freeze,
                     "Token requires a freeze authority to default to frozen accounts"
                 );
                 let account_state;
@@ -607,7 +612,7 @@ fn main() -> Result<()> {
                     maximum_fee,
                 });
             }
-            if enable_non_transferable {
+            if transfer {
                 extensions.push(ExtensionInitializationParams::NonTransferable);
             }
             if let Some(auto_approve) = confidential_transfer_auto_approve {
@@ -872,21 +877,30 @@ fn main() -> Result<()> {
                 tick, price, sqrt_price_x64, amm_config_key
             );
             let observation_account = Keypair::generate(&mut OsRng);
+            let observation_account_s = Keypair::generate(&mut OsRng);
             let mut create_observation_instr = create_account_rent_exmpt_instr(
                 &pool_config.clone(),
                 &observation_account.pubkey(),
                 pool_config.raydium_v3_program,
                 raydium_amm_v3::states::ObservationState::LEN,
             )?;
+            let mut create_observation_instr_s= create_account_rent_exmpt_instr(
+                &pool_config_s.clone(),
+                &observation_account_s.pubkey(),
+                pool_config_s.raydium_v3_program,
+                raydium_amm_v3::states::ObservationState::LEN,
+            )?;
             let create_pool_instr = create_pool_instr(
                 &pool_config.clone(),
                 amm_config_key,
                 observation_account.pubkey(),
+                observation_account_s.pubkey(),
                 mint0,
                 mint1,
                 mint0_owner,
                 mint1_owner,
                 pool_config.tickarray_bitmap_extension.unwrap(),
+                pool_config_s.tickarray_bitmap_extension.unwrap(),
                 sqrt_price_x64,
                 open_time,
             )?;
@@ -1741,7 +1755,7 @@ fn main() -> Result<()> {
                                 POOL_TICK_ARRAY_BITMAP_SEED.as_bytes(),
                                 Pubkey::from_str("G5c3HsRBWHiwVVnHVqzW7BEpLrs12pxPHjytw5ugVveS")?.to_bytes().as_ref(),
                             ],
-                            &Pubkey::from_str("GHpwXWcfwLUDhzaSK6Tgn2FrsEfE8azL4VSuG3sqFNgD")?,
+                            &Pubkey::from_str("2LJjrbUfVALvyfHsLHPZppwNQEHLoSRpHEGzSAC4vjF3")?,
                         )
                         .0,
                 pool_config.mint0.unwrap(),
@@ -1943,7 +1957,7 @@ fn main() -> Result<()> {
                             ],
                             &program.id(),
                         );
-                        println!("id:{}, lower:{}, upper:{}, liquidity:{}, fees_owed_0:{}, fees_owed_1:{}, fee_growth_inside_0:{}, fee_growth_inside_1:{}", personal_position_key, position.tick_lower_index, position.tick_upper_index, position.liquidity, position.token_fees_owed_0, position.token_fees_owed_1, position.fee_growth_inside_0_last_x64, position.fee_growth_inside_1_last_x64);
+                        //println!("id:{}, lower:{}, upper:{}, liquidity:{}, fees_owed_0:{}, fees_owed_1:{}, fee_growth_inside_0:{}, fee_growth_inside_1:{}", personal_position_key, position.tick_lower_index, position.tick_upper_index, position.liquidity, position.token_fees_owed_0, position.token_fees_owed_1, position.fee_growth_inside_0_last_x64, position.fee_growth_inside_1_last_x64);
                         user_positions.push(position);
                     }
                 }
@@ -2105,7 +2119,7 @@ fn main() -> Result<()> {
                     raydium_amm_v3::states::PersonalPositionState,
                 >(&position.1)?;
                 if personal_position.pool_id == pool_id {
-                    println!(
+                    /*println!(
                         "personal_position:{}, lower:{}, upper:{}, liquidity:{}, token_fees_owed_0:{}, token_fees_owed_1:{}, reward_amount_owed:{}, fee_growth_inside:{}, fee_growth_inside_1:{}, reward_inside:{}",
                         position.0,
                         personal_position.tick_lower_index,
@@ -2117,7 +2131,7 @@ fn main() -> Result<()> {
                         personal_position.fee_growth_inside_0_last_x64,
                         personal_position.fee_growth_inside_1_last_x64,
                         personal_position.reward_infos[0].growth_inside_last_x64,
-                    );
+                    );*/
                     total_fees_owed_0 += personal_position.token_fees_owed_0;
                     total_fees_owed_1 += personal_position.token_fees_owed_1;
                     total_reward_owed += personal_position.reward_infos[0].reward_amount_owed;
@@ -2160,13 +2174,13 @@ fn main() -> Result<()> {
                     raydium_amm_v3::states::ProtocolPositionState,
                 >(&position.1)?;
                 if protocol_position.pool_id == pool_id {
-                    println!(
+                    /*println!(
                         "protocol_position:{} lower_index:{}, upper_index:{}, liquidity:{}",
                         position.0,
                         protocol_position.tick_lower_index,
                         protocol_position.tick_upper_index,
                         protocol_position.liquidity,
-                    );
+                    );*/
                 }
             }
         }

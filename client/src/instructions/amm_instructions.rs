@@ -1,7 +1,7 @@
 use anchor_client::{Client, Cluster};
 use anchor_lang::prelude::AccountMeta;
 use anyhow::Result;
-use mpl_token_metadata::state::PREFIX as MPL_PREFIX;
+//use mpl_token_metadata::state::PREFIX as MPL_PREFIX;
 use raydium_amm_v3::states::PositionDirection;
 use solana_sdk::{
     instruction::Instruction, pubkey::Pubkey, signature::Signer, system_program, sysvar,
@@ -124,11 +124,13 @@ pub fn create_pool_instr(
     config: &ClientConfig,
     amm_config: Pubkey,
     observation_key: Pubkey,
+    observation_key_s: Pubkey,
     token_mint_0: Pubkey,
     token_mint_1: Pubkey,
     token_program_0: Pubkey,
     token_program_1: Pubkey,
     tick_array_bitmap: Pubkey,
+    tick_array_bitmap_s: Pubkey,
     sqrt_price_x64: u128,
     open_time: u64,
 ) -> Result<Vec<Instruction>> {
@@ -161,8 +163,33 @@ pub fn create_pool_instr(
             token_mint_1.to_bytes().as_ref(),
         ],
         &program.id(),
-    );/*
-    let instructions = program
+    );
+    let (pool_account_key_s, __bump) = Pubkey::find_program_address(
+        &[
+            POOL_SEED.as_bytes(),
+            amm_config.to_bytes().as_ref(),
+            token_mint_1.to_bytes().as_ref(),
+            token_mint_0.to_bytes().as_ref(),
+        ],
+        &program.id(),
+    );
+    let (token_vault_0_s, __bump) = Pubkey::find_program_address(
+        &[
+            POOL_VAULT_SEED.as_bytes(),
+            pool_account_key_s.to_bytes().as_ref(),
+            token_mint_1.to_bytes().as_ref(),
+        ],
+        &program.id(),
+    );
+    let (token_vault_1_s, __bump) = Pubkey::find_program_address(
+        &[
+            POOL_VAULT_SEED.as_bytes(),
+            pool_account_key_s.to_bytes().as_ref(),
+            token_mint_0.to_bytes().as_ref(),
+        ],
+        &program.id(),
+    );
+    let instructions_0 = program
         .request()
         .accounts(raydium_accounts::CreatePool {
             pool_creator: program.payer(),
@@ -178,13 +205,40 @@ pub fn create_pool_instr(
             token_program_1,
             system_program: system_program::id(),
             rent: sysvar::rent::id(),
+            ixs_sysvar: sysvar::instructions::id(),
         })
         .args(raydium_instruction::CreatePool {
             sqrt_price_x64,
             open_time,
+            other_ix: 1
         })
-        .instructions()?; */
-    Ok(vec![])
+        .instructions()?; 
+    let instructions_1 = program
+        .request()
+        .accounts(raydium_accounts::CreatePool {
+            pool_creator: program.payer(),
+            amm_config,
+            pool_state: pool_account_key_s,
+            token_mint_1,
+            token_mint_0,
+            token_vault_0: token_vault_1_s,
+            token_vault_1: token_vault_0_s,
+            observation_state: observation_key_s,
+            tick_array_bitmap: tick_array_bitmap_s,
+            token_program_1,
+            token_program_0,
+            system_program: system_program::id(),
+            rent: sysvar::rent::id(),
+            ixs_sysvar: sysvar::instructions::id(),
+        })
+        .args(raydium_instruction::CreatePool {
+            // inverse?
+            sqrt_price_x64: 1_000_000_000_000_000_000_000_000_000_000 / sqrt_price_x64,
+            open_time,
+            other_ix: 0
+        })
+        .instructions()?; 
+    Ok(instructions_0.into_iter().chain(instructions_1).collect())
 }
 
 pub fn open_position_instr(
@@ -215,14 +269,14 @@ pub fn open_position_instr(
     let program = client.program(config.raydium_v3_program)?;
     let nft_ata_token_account =
         spl_associated_token_account::get_associated_token_address(&program.payer(), &nft_mint_key);
-    let (metadata_account_key, _bump) = Pubkey::find_program_address(
+    /*let (metadata_account_key, _bump) = Pubkey::find_program_address(
         &[
             MPL_PREFIX.as_bytes(),
             mpl_token_metadata::id().to_bytes().as_ref(),
             nft_mint_key.to_bytes().as_ref(),
         ],
         &mpl_token_metadata::id(),
-    );
+    );*/
     let (protocol_position_key, __bump) = Pubkey::find_program_address(
         &[
             POSITION_SEED.as_bytes(),
@@ -259,7 +313,7 @@ pub fn open_position_instr(
             position_nft_owner: nft_to_owner,
             position_nft_mint: nft_mint_key,
             position_nft_account: nft_ata_token_account,
-            metadata_account: metadata_account_key,
+            //metadata_account: metadata_account_key,
             pool_state: pool_account_key,
             protocol_position: protocol_position_key,
             tick_array_lower,
@@ -273,7 +327,7 @@ pub fn open_position_instr(
             system_program: system_program::id(),
             token_program: spl_token::id(),
             associated_token_program: spl_associated_token_account::id(),
-            metadata_program: mpl_token_metadata::id(),
+           // metadata_program: mpl_token_metadata::id(),
             token_program_2022: spl_token_2022::id(),
             vault_0_mint: token_mint_0,
             vault_1_mint: token_mint_1,
@@ -287,7 +341,6 @@ pub fn open_position_instr(
             tick_upper_index,
             tick_array_lower_start_index,
             tick_array_upper_start_index,
-            with_matedata,
             base_flag: None,
             direction: PositionDirection::Long,
         })

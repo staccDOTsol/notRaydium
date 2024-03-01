@@ -10,7 +10,7 @@ use anchor_spl::token_interface::TokenAccount;
 #[derive(Accounts)]
 pub struct CollectFundFee<'info> {
     /// Only admin or fund_owner can collect fee now
-    #[account(constraint = (owner.key() == amm_config.fund_owner || owner.key() == crate::admin::id()) @ ErrorCode::NotApproved)]
+    #[account(constraint = (owner.key() == amm_config.load()?.fund_owner) @ ErrorCode::NotApproved)]
     pub owner: Signer<'info>,
 
     /// Pool state stores accumulated protocol fee amount
@@ -19,7 +19,7 @@ pub struct CollectFundFee<'info> {
 
     /// Amm config account stores fund_owner
     #[account(address = pool_state.load()?.amm_config)]
-    pub amm_config: Account<'info, AmmConfig>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
 
     /// The address that holds pool tokens for token_0
     #[account(

@@ -19,7 +19,7 @@ pub struct SwapSingleV2<'info> {
 
     /// The factory state to read protocol fees
     #[account(address = l_state.load()?.amm_config)]
-    pub amm_config: Box<Account<'info, AmmConfig>>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
 
     /// The program account of the pool in which the swap will be performed
     #[account(mut)]
@@ -172,7 +172,6 @@ pub fn exact_internal_v2<'c: 'info, 'info>(
     is_base_input: bool,
 ) -> Result<u64> {
     // invoke_memo_instruction(SWAP_MEMO_MSG, ctx.memo_program.to_account_info())?;
-
     let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
     let input_vault_mint = ctx.input_vault_mint.clone();
     let output_vault_mint = ctx.output_vault_mint.clone();
@@ -275,8 +274,9 @@ pub fn exact_internal_v2<'c: 'info, 'info>(
             tick_array_states.push_back(AccountLoad::load_data_mut(account_info)?);
         }
 
+        let amm_config = ctx.amm_config.load_mut()?;
         (amount_0, amount_1) = swap_internal(
-            &ctx.amm_config,
+            &amm_config,
             pool_state,
             tick_array_states,
             &mut observation_state.load_mut()?,

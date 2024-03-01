@@ -15,7 +15,7 @@ pub struct SetRewardParams<'info> {
     #[account(
         address = pool_state.load()?.amm_config
     )]
-    pub amm_config: Account<'info, AmmConfig>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
 
     #[account(
         mut,

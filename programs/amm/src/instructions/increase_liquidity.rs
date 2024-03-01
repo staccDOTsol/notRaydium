@@ -14,7 +14,7 @@ pub struct IncreaseLiquidity<'info> {
 
     /// The token account for nft
     #[account(
-        constraint = nft_account.mint == personal_position.nft_mint
+        constraint = nft_account.mint == personal_position.load()?.nft_mint
     )]
     pub nft_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -26,17 +26,17 @@ pub struct IncreaseLiquidity<'info> {
         seeds = [
             POSITION_SEED.as_bytes(),
             pool_state.key().as_ref(),
-            &personal_position.tick_lower_index.to_be_bytes(),
-            &personal_position.tick_upper_index.to_be_bytes(),
+            &personal_position.load()?.tick_lower_index.to_be_bytes(),
+            &personal_position.load()?.tick_upper_index.to_be_bytes(),
         ],
         bump,
-        constraint = protocol_position.pool_id == pool_state.key(),
+        constraint = protocol_position.load()?.pool_id == pool_state.key(),
     )]
-    pub protocol_position: Box<Account<'info, ProtocolPositionState>>,
+    pub protocol_position: AccountLoader<'info, ProtocolPositionState>,
 
     /// Increase liquidity for this position
-    #[account(mut, constraint = personal_position.pool_id == pool_state.key())]
-    pub personal_position: Box<Account<'info, PersonalPositionState>>,
+    #[account(mut, constraint = personal_position.load()?.pool_id == pool_state.key())]
+    pub personal_position: AccountLoader<'info, PersonalPositionState>,
 
     /// Stores init state for the lower tick
     #[account(mut, constraint = tick_array_lower.load()?.pool_id == pool_state.key())]
@@ -94,7 +94,7 @@ pub struct IncreaseLiquidityV2<'info> {
 
     /// The token account for nft
     #[account(
-        constraint = nft_account.mint == personal_position.nft_mint,
+        constraint = nft_account.mint == personal_position.load()?.nft_mint,
         token::token_program = token_program,
     )]
     pub nft_account: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -107,17 +107,17 @@ pub struct IncreaseLiquidityV2<'info> {
         seeds = [
             POSITION_SEED.as_bytes(),
             pool_state.key().as_ref(),
-            &personal_position.tick_lower_index.to_be_bytes(),
-            &personal_position.tick_upper_index.to_be_bytes(),
+            &personal_position.load()?.tick_lower_index.to_be_bytes(),
+            &personal_position.load()?.tick_upper_index.to_be_bytes(),
         ],
         bump,
-        constraint = protocol_position.pool_id == pool_state.key(),
+        constraint = protocol_position.load()?.pool_id == pool_state.key(),
     )]
-    pub protocol_position: Box<Account<'info, ProtocolPositionState>>,
+    pub protocol_position: AccountLoader<'info, ProtocolPositionState>,
 
     /// Increase liquidity for this position
-    #[account(mut, constraint = personal_position.pool_id == pool_state.key())]
-    pub personal_position: Box<Account<'info, PersonalPositionState>>,
+    #[account(mut, constraint = personal_position.load()?.pool_id == pool_state.key())]
+    pub personal_position: AccountLoader<'info, PersonalPositionState>,
 
     /// Stores init state for the lower tick
     #[account(mut, constraint = tick_array_lower.load()?.pool_id == pool_state.key())]
@@ -245,8 +245,8 @@ pub fn increase_liquidity_v2<'a, 'b, 'c: 'info, 'info>(
 pub fn increase_liquidity<'a, 'b, 'c: 'info, 'info>(
     nft_owner: &'b Signer<'info>,
     pool_state_loader: &'b AccountLoader<'info, PoolState>,
-    protocol_position: &'b mut Box<Account<'info, ProtocolPositionState>>,
-    personal_position: &'b mut Box<Account<'info, PersonalPositionState>>,
+    protocol_position: &'b mut AccountLoader<'info, ProtocolPositionState>,
+    personal_position: &'b mut AccountLoader<'info, PersonalPositionState>,
     tick_array_lower_loader: &'b AccountLoader<'info, TickArrayState>,
     tick_array_upper_loader: &'b AccountLoader<'info, TickArrayState>,
     token_account_0: &'b Box<InterfaceAccount<'info, TokenAccount>>,
@@ -264,6 +264,8 @@ pub fn increase_liquidity<'a, 'b, 'c: 'info, 'info>(
     amount_1_max: u64,
     base_flag: Option<bool>,
 ) -> Result<()> {
+    let personal_position = &mut personal_position.load_mut()?;
+    let protocol_position = &mut protocol_position.load_mut()?;
     let mut liquidity = liquidity;
     let pool_state = &mut pool_state_loader.load_mut()?;
     if !pool_state.get_status_by_bit(PoolStatusBitIndex::OpenPositionOrIncreaseLiquidity) {

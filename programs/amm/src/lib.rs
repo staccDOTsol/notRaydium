@@ -9,11 +9,21 @@ use core as core_;
 use instructions::*;
 use states::*;
 use util::access_control::*;
-
+/// Macro used to include code if the feature is 'tiny.' To save monye.
+/// This is intended to be used for starving devs.
+#[macro_export]
+macro_rules! cfg_tiny {
+    ($($item:item)*) => {
+        $(
+            #[cfg_attr(doc_cfg, doc(cfg(feature = "tiny")))]
+            $item
+        )*
+    };
+}
 #[cfg(feature = "devnet")]
-declare_id!("GHpwXWcfwLUDhzaSK6Tgn2FrsEfE8azL4VSuG3sqFNgD");
+declare_id!("2LJjrbUfVALvyfHsLHPZppwNQEHLoSRpHEGzSAC4vjF3");
 #[cfg(not(feature = "devnet"))]
-declare_id!("GHpwXWcfwLUDhzaSK6Tgn2FrsEfE8azL4VSuG3sqFNgD");
+declare_id!("2LJjrbUfVALvyfHsLHPZppwNQEHLoSRpHEGzSAC4vjF3");
 
 pub mod admin {
     use anchor_lang::prelude::declare_id;
@@ -59,6 +69,7 @@ pub mod amm_v3 {
             fund_fee_rate,
         )
     }
+    
 
     /// Updates the owner of the amm config
     /// Must be called by the current owner or admin
@@ -72,10 +83,11 @@ pub mod amm_v3 {
     /// * `new_owner`- The config's new owner, be set when `param` is 3
     /// * `new_fund_owner`- The config's new fund owner, be set when `param` is 4
     /// * `param`- The vaule can be 0 | 1 | 2 | 3 | 4, otherwise will report a error
-    ///
+
     pub fn update_amm_config(ctx: Context<UpdateAmmConfig>, param: u8, value: u32) -> Result<()> {
         instructions::update_amm_config(ctx, param, value)
     }
+
 
     /// Creates a pool for the given token pair and the initial price
     ///
@@ -88,8 +100,9 @@ pub mod amm_v3 {
         ctx: Context<CreatePool>,
         sqrt_price_x64: u128,
         open_time: u64,
+        other_ix: u8
     ) -> Result<()> {
-        instructions::create_pool(ctx, sqrt_price_x64, open_time)
+        instructions::create_pool(ctx, sqrt_price_x64, open_time, other_ix)
     }
 
     /// Update pool status for given vaule
@@ -281,7 +294,6 @@ pub mod amm_v3 {
             tick_upper_index,
             tick_array_lower_start_index,
             tick_array_upper_start_index,
-            true,
             None,
             direction
         )
@@ -310,7 +322,6 @@ pub mod amm_v3 {
         liquidity: u128,
         amount_0_max: u64,
         amount_1_max: u64,
-        with_matedata: bool,
         base_flag: Option<bool>,
         direction: PositionDirection,
     ) -> Result<()> {
@@ -323,7 +334,6 @@ pub mod amm_v3 {
             tick_upper_index,
             tick_array_lower_start_index,
             tick_array_upper_start_index,
-            with_matedata,
             base_flag,
             direction
         )

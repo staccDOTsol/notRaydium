@@ -1,3 +1,4 @@
+
 use crate::error::ErrorCode;
 use crate::states::*;
 use crate::util::{burn, close_spl_account};
@@ -14,7 +15,7 @@ pub struct ClosePosition<'info> {
     /// Unique token mint address
     #[account(
       mut,
-      address = personal_position.nft_mint,
+      address = personal_position.load()?.nft_mint,
       mint::token_program = token_program,
     )]
     pub position_nft_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -41,7 +42,7 @@ pub struct ClosePosition<'info> {
         bump,
         close = nft_owner
     )]
-    pub personal_position: Box<Account<'info, PersonalPositionState>>,
+    pub personal_position: AccountLoader<'info, PersonalPositionState>,
 
     /// Program to create the position manager state account
     pub system_program: Program<'info, System>,
@@ -54,25 +55,30 @@ pub struct ClosePosition<'info> {
 pub fn close_position<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, ClosePosition<'info>>,
 ) -> Result<()> {
-    if ctx.accounts.personal_position.liquidity != 0
-        || ctx.accounts.personal_position.token_fees_owed_0 != 0
-        || ctx.accounts.personal_position.token_fees_owed_1 != 0
+    let personal_position = &mut ctx.accounts.personal_position.load_mut()?;
+    let liquidity = personal_position.liquidity;
+    let token_fees_owed_0 = personal_position.token_fees_owed_0;
+    let token_fees_owed_1 = personal_position.token_fees_owed_1;
+    let reward_infos = personal_position.reward_infos;
+    if personal_position.liquidity != 0
+        || personal_position.token_fees_owed_0 != 0
+        || personal_position.token_fees_owed_1 != 0
     {
         msg!(
             "remaing liquidity:{},token_fees_owed_0:{},token_fees_owed_1:{}",
-            ctx.accounts.personal_position.liquidity,
-            ctx.accounts.personal_position.token_fees_owed_0,
-            ctx.accounts.personal_position.token_fees_owed_1
+            liquidity,
+            token_fees_owed_0,
+            token_fees_owed_1
         );
         return err!(ErrorCode::ClosePositionErr);
     }
 
-    for i in 0..ctx.accounts.personal_position.reward_infos.len() {
-        if ctx.accounts.personal_position.reward_infos[i].reward_amount_owed != 0 {
+    for i in 0..reward_infos.len() {
+        if reward_infos[i].reward_amount_owed != 0 {
             msg!(
                 "remaing reward index:{},amount:{}",
                 i,
-                ctx.accounts.personal_position.reward_infos[i].reward_amount_owed,
+                reward_infos[i].reward_amount_owed,
             );
             return err!(ErrorCode::ClosePositionErr);
         }

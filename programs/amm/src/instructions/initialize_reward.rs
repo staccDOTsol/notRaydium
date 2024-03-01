@@ -20,7 +20,7 @@ pub struct InitializeReward<'info> {
 
     /// For check the reward_funder authority
     #[account(address = pool_state.load()?.amm_config)]
-    pub amm_config: Box<Account<'info, AmmConfig>>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
 
     /// Set reward for this pool
     #[account(mut)]
@@ -92,9 +92,7 @@ pub fn initialize_reward(
     ctx: Context<InitializeReward>,
     param: InitializeRewardParam,
 ) -> Result<()> {
-    if !util::is_supported_mint(&ctx.accounts.reward_token_mint).unwrap() {
-        return err!(ErrorCode::NotSupportMint);
-    }
+    
     let operation_state = ctx.accounts.operation_state.load()?;
     require!(
         ctx.accounts.reward_funder.key() == crate::admin::id()

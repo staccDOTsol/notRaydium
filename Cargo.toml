@@ -7,9 +7,15 @@ members = [
 [profile.test]
 opt-level = 0
 
+
 [profile.release]
 lto = "fat"
 codegen-units = 1
+panic = "abort"
+strip = true
+overflow-checks = true
+opt-level = "z"
+incremental = false
 
 [profile.release.build-override]
 opt-level = 3

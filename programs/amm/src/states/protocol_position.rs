@@ -11,7 +11,7 @@ use anchor_lang::prelude::*;
 pub const POSITION_SEED: &str = "position";
 
 /// Info stored for each user's position
-#[account]
+#[account(zero_copy(unsafe))]
 #[derive(Default, Debug)]
 pub struct ProtocolPositionState {
     /// Bump to identify PDA

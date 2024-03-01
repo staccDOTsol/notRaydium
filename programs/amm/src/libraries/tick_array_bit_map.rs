@@ -167,7 +167,7 @@ mod test {
                 .unwrap();
             if ret.0 && ret.1 != start_index {
                 start_index = ret.1;
-                println!("{}-{}", tick_current, start_index);
+                //println!("{}-{}", tick_current, start_index);
             }
             tick_current += 600;
         }
@@ -184,7 +184,7 @@ mod test {
                 tick_spacing,
                 true,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }
@@ -204,7 +204,7 @@ mod test {
                 tick_spacing,
                 true,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }
@@ -224,7 +224,7 @@ mod test {
                 tick_spacing,
                 true,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }
@@ -245,7 +245,7 @@ mod test {
                 tick_spacing,
                 false,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }
@@ -265,7 +265,7 @@ mod test {
                 tick_spacing,
                 false,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }
@@ -285,7 +285,7 @@ mod test {
                 tick_spacing,
                 false,
             );
-            println!("{:?}", array_start_index);
+            //println!("{:?}", array_start_index);
             if !is_found {
                 break;
             }

@@ -196,13 +196,13 @@ mod tick_math_test {
                 MIN_SQRT_PRICE_X64
             );
             let min_sqrt_price = MIN_SQRT_PRICE_X64 as f64 / fixed_point_64::Q64 as f64;
-            println!("min_sqrt_price: {}", min_sqrt_price);
+            //println!("min_sqrt_price: {}", min_sqrt_price);
             assert_eq!(
                 get_sqrt_price_at_tick(MAX_TICK).unwrap(),
                 MAX_SQRT_PRICE_X64
             );
             let max_sqrt_price = MAX_SQRT_PRICE_X64 as f64 / fixed_point_64::Q64 as f64;
-            println!("max_sqrt_price: {}", max_sqrt_price);
+            //println!("max_sqrt_price: {}", max_sqrt_price);
         }
     }
 

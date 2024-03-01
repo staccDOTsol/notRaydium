@@ -50,7 +50,7 @@ pub fn swap_router_base_in<'a, 'b, 'c: 'info, 'info>(
             accounts = remaining_accounts.as_slice();
             continue;
         }
-        let amm_config = Box::new(Account::<AmmConfig>::try_from(account_info)?);
+        let amm_config = AccountLoader::<AmmConfig>::try_from(account_info)?;
         let l_state_loader =
             AccountLoader::<PoolState>::try_from(remaining_accounts.next().unwrap())?;
         let s_state_loader =

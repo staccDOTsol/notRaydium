@@ -1,7 +1,6 @@
-use crate::error::ErrorCode;
+
 use crate::states::*;
 use anchor_lang::prelude::*;
-use std::ops::DerefMut;
 
 #[derive(Accounts)]
 #[instruction(index: u16)]
@@ -9,7 +8,6 @@ pub struct CreateAmmConfig<'info> {
     /// Address to be set as protocol owner.
     #[account(
         mut,
-        address = crate::admin::id() @ ErrorCode::NotApproved
     )]
     pub owner: Signer<'info>,
 
@@ -24,11 +22,10 @@ pub struct CreateAmmConfig<'info> {
         payer = owner,
         space = AmmConfig::LEN
     )]
-    pub amm_config: Account<'info, AmmConfig>,
-
-    pub system_program: Program<'info, System>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
+    
+    pub system_program: Program<'info, System>, 
 }
-
 pub fn create_amm_config(
     ctx: Context<CreateAmmConfig>,
     index: u16,
@@ -37,7 +34,7 @@ pub fn create_amm_config(
     protocol_fee_rate: u32,
     fund_fee_rate: u32,
 ) -> Result<()> {
-    let amm_config = ctx.accounts.amm_config.deref_mut();
+    let amm_config = &mut ctx.accounts.amm_config.load_init()?;
     amm_config.owner = ctx.accounts.owner.key();
     amm_config.bump = ctx.bumps.amm_config;
     amm_config.index = index;

@@ -452,7 +452,7 @@ mod test {
         let real_expected =
             U256::from(observation.cumulative_time_price_x64) + U256::from(delta_price_x64);
         let expected_restore = U256::from(u128::max_value()) + U256::from(expected + 1);
-        println!(
+        /*println!(
             "delta_price_x64: {}, expected: {}, u128_max: {}",
             delta_price_x64,
             expected,
@@ -461,7 +461,7 @@ mod test {
         println!(
             "real_expected: {}, expected_restore:{}",
             real_expected, expected_restore
-        );
+        );*/
 
         observation_index = next_observation_index.unwrap();
         next_observation_index = observation_state

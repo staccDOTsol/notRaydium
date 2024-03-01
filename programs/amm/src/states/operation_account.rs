@@ -98,10 +98,10 @@ mod test {
         keys.push(Pubkey::new_unique());
         keys.push(Pubkey::new_unique());
         keys.sort_by(|a, b| a.cmp(b));
-        println!("{:?}", keys);
+        //println!("{:?}", keys);
 
         operation_state.update_operation_owner(keys.clone());
-        println!("{:?}", operation_state.operation_owners);
+        //println!("{:?}", operation_state.operation_owners);
         assert_eq!(
             &keys.clone()[..],
             &operation_state.operation_owners[..keys.len()]
@@ -124,10 +124,10 @@ mod test {
         keys.push(Pubkey::new_unique());
         keys.push(Pubkey::new_unique());
         keys.sort_by(|a, b| a.cmp(b));
-        println!("{:?}", keys);
+        //println!("{:?}", keys);
 
         operation_state.update_operation_owner(keys.clone());
-        println!("{:?}", operation_state.operation_owners);
+        //println!("{:?}", operation_state.operation_owners);
     }
 
     #[test]
@@ -146,10 +146,10 @@ mod test {
         keys.push(Pubkey::new_unique());
         keys.push(Pubkey::new_unique());
         keys.sort_by(|a, b| a.cmp(b));
-        println!("{:?}", keys);
+        //println!("{:?}", keys);
 
         operation_state.update_operation_owner(keys.clone());
-        println!("{:?}", operation_state.operation_owners);
+        //println!("{:?}", operation_state.operation_owners);
     }
 
     #[test]
@@ -164,10 +164,10 @@ mod test {
             keys.push(Pubkey::new_unique());
         }
         keys.sort_by(|a, b| a.cmp(b));
-        println!("{:?}", keys);
+        //println!("{:?}", keys);
 
         operation_state.update_operation_owner(keys.clone());
-        println!("{:?}", operation_state.operation_owners);
+        //println!("{:?}", operation_state.operation_owners);
         assert_eq!(
             &keys.clone()[..],
             &operation_state.operation_owners[..keys.len()]
@@ -187,7 +187,7 @@ mod test {
             keys.push(Pubkey::new_unique());
         }
         keys.sort_by(|a, b| a.cmp(b));
-        println!("{:?}", keys);
+        //println!("{:?}", keys);
 
         operation_state.update_operation_owner(keys.clone());
     }
@@ -210,6 +210,6 @@ mod test {
         operation_state.operation_owners[keys.len() + 1] = Pubkey::new_unique();
 
         operation_state.remove_operation_owner(keys.clone());
-        println!("{:?}", operation_state.operation_owners);
+        //println!("{:?}", operation_state.operation_owners);
     }
 }

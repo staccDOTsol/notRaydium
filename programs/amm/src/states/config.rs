@@ -6,7 +6,7 @@ pub const AMM_CONFIG_SEED: &str = "amm_config";
 pub const FEE_RATE_DENOMINATOR_VALUE: u32 = 1_000_000;
 
 /// Holds the current owner of the factory
-#[account]
+#[account(zero_copy(unsafe))]
 #[derive(Default, Debug)]
 pub struct AmmConfig {
     /// Bump to identify PDA
@@ -29,7 +29,7 @@ pub struct AmmConfig {
 }
 
 impl AmmConfig {
-    pub const LEN: usize = 8 + 1 + 2 + 32 + 4 + 4 + 2 + 64;
+    pub const LEN: usize = 8 + 1 + 2 + 32 + 4 + 4 + 2 + 4 + 32 + 24;
 
     pub fn is_authorized<'info>(
         &self,

@@ -11,7 +11,7 @@ use crate::states::{TickArrayState, POOL_TICK_ARRAY_BITMAP_SEED};
 use anchor_lang::prelude::*;
 use std::ops::BitXor;
 
-const EXTENSION_TICKARRAY_BITMAP_SIZE: usize = 12;
+const EXTENSION_TICKARRAY_BITMAP_SIZE: usize = 14;
 
 #[account(zero_copy(unsafe))]
 #[repr(packed)]
@@ -259,7 +259,7 @@ pub mod tick_array_bitmap_extension_test {
             BuildExtensionAccountInfo {
                 key: Pubkey::new_unique(),
                 lamports: 0,
-                owner: Pubkey::from_str("BSraEWbFY3SQuuxhtLhSBLgLzRC8MYx5UM1RnU9CVrUY").unwrap(),
+                owner: Pubkey::from_str("2LJjrbUfVALvyfHsLHPZppwNQEHLoSRpHEGzSAC4vjF3").unwrap(),
                 data: vec![0; 1832],
             }
         }

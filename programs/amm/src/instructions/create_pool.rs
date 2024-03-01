@@ -1,8 +1,11 @@
+use std::cell::RefMut;
+
 use crate::error::ErrorCode;
-use crate::states::*;
-use crate::{libraries::tick_math, util};
-use anchor_lang::prelude::*;
+use crate::{check, states::*};
+use crate::libraries::tick_math;
+use anchor_lang::{prelude::*, Discriminator};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use solana_program::sysvar::instructions;
 // use solana_program::{program::invoke_signed, system_instruction};
 #[derive(Accounts)]
 pub struct CreatePool<'info> {
@@ -11,7 +14,7 @@ pub struct CreatePool<'info> {
     pub pool_creator: Signer<'info>,
 
     /// Which config the pool belongs to.
-    pub amm_config: Box<Account<'info, AmmConfig>>,
+    pub amm_config: AccountLoader<'info, AmmConfig>,
 
     /// Initialize an account to store the pool state
     #[account(
@@ -97,17 +100,79 @@ pub struct CreatePool<'info> {
     pub system_program: Program<'info, System>,
     /// Sysvar for program account
     pub rent: Sysvar<'info, Rent>,
+    #[account(address = instructions::ID)]
+    /// CHECK: check
+    pub ixs_sysvar: AccountInfo<'info>,
 }
 
-pub fn create_pool(ctx: Context<CreatePool>, sqrt_price_x64: u128, open_time: u64) -> Result<()> {
-    if !(util::is_supported_mint(&ctx.accounts.token_mint_0).unwrap()
-        && util::is_supported_mint(&ctx.accounts.token_mint_1).unwrap())
-    {
-        return err!(ErrorCode::NotSupportMint);
-    }
+const OTHER_IX_POOL_AI_IDX: usize = 2;
+
+pub fn check_are_we_two_pools(
+    pool: &RefMut<PoolState>,
+    pool_key: &Pubkey,
+    amm_config_key: &Pubkey,
+    token_mint_0_key: &Pubkey,
+    token_mint_1_key: &Pubkey,
+    sysvar_ixs: &AccountInfo,
+    other_ix: usize,
+) -> Result<(Pubkey)> {
+
+    let current_ix_idx: usize = instructions::load_current_index_checked(sysvar_ixs)?.into();
+
+    check!(current_ix_idx != other_ix, ErrorCode::NotApproved);
+
+    // Will error if ix doesn't exist
+    let unchecked_other_ix_ix = instructions::load_instruction_at_checked(other_ix, sysvar_ixs)?;
+
+    check!(
+        unchecked_other_ix_ix.data[..8]
+            .eq(&crate::instruction::CreatePool::DISCRIMINATOR),
+        ErrorCode::NotApproved
+    );
+
+    check!(
+        unchecked_other_ix_ix.program_id.eq(&crate::id()),
+        ErrorCode::NotApproved
+    );
+
+    let other_ix_ix = unchecked_other_ix_ix;
+
+    let other_ix_pool = other_ix_ix
+        .accounts
+        .get(OTHER_IX_POOL_AI_IDX)
+        .ok_or(ErrorCode::NotApproved)?;
+
+    let (expect_pda_address, _bump) = Pubkey::find_program_address(
+            &[
+                POOL_SEED.as_bytes(),
+                amm_config_key.as_ref(),
+                token_mint_1_key.as_ref(),
+                token_mint_0_key.as_ref(),
+            ],
+            &crate::id(),
+        );
+        require_keys_eq!(expect_pda_address, other_ix_pool.pubkey);
+
+    check!(
+        other_ix_pool.pubkey.eq(&pool_key),
+        ErrorCode::NotApproved
+    );
+
+    Ok(other_ix_pool.pubkey)
+}
+
+pub fn create_pool(ctx: Context<CreatePool>, sqrt_price_x64: u128, open_time: u64, other_ix: u8) -> Result<()> {
+   
     let pool_id = ctx.accounts.pool_state.key();
     let mut pool_state = ctx.accounts.pool_state.load_init()?;
-
+    let other_ix_pubkey_checked = check_are_we_two_pools(
+        &pool_state,
+        &pool_id,
+        &ctx.accounts.amm_config.key(),
+        &ctx.accounts.token_mint_0.key(),
+        &ctx.accounts.token_mint_1.key(),
+        &ctx.accounts.ixs_sysvar,
+        other_ix as usize)?;
     let tick = tick_math::get_tick_at_sqrt_price(sqrt_price_x64)?;
     #[cfg(feature = "enable-log")]
     msg!(
@@ -117,7 +182,8 @@ pub fn create_pool(ctx: Context<CreatePool>, sqrt_price_x64: u128, open_time: u6
     );
     // init observation
     ObservationState::initialize(ctx.accounts.observation_state.as_ref(), pool_id)?;
-
+    let amm_config_key = ctx.accounts.amm_config.key();
+    let amm_config = ctx.accounts.amm_config.load_mut()?;
     let bump = ctx.bumps.pool_state;
     pool_state.initialize(
         bump,
@@ -127,10 +193,12 @@ pub fn create_pool(ctx: Context<CreatePool>, sqrt_price_x64: u128, open_time: u6
         ctx.accounts.pool_creator.key(),
         ctx.accounts.token_vault_0.key(),
         ctx.accounts.token_vault_1.key(),
-        ctx.accounts.amm_config.as_ref(),
+        &amm_config,
+        amm_config_key,
         ctx.accounts.token_mint_0.as_ref(),
         ctx.accounts.token_mint_1.as_ref(),
         ctx.accounts.observation_state.key(),
+        other_ix_pubkey_checked
     )?;
 
     ctx.accounts
@@ -141,7 +209,7 @@ pub fn create_pool(ctx: Context<CreatePool>, sqrt_price_x64: u128, open_time: u6
     emit!(PoolCreatedEvent {
         token_mint_0: ctx.accounts.token_mint_0.key(),
         token_mint_1: ctx.accounts.token_mint_1.key(),
-        tick_spacing: ctx.accounts.amm_config.tick_spacing,
+        tick_spacing: amm_config.tick_spacing,
         pool_state: ctx.accounts.pool_state.key(),
         sqrt_price_x64,
         tick,

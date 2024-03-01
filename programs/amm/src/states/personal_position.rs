@@ -3,7 +3,7 @@ use crate::pool::REWARD_NUM;
 use crate::PositionDirection;
 use anchor_lang::prelude::*;
 
-#[account]
+#[account(zero_copy(unsafe))]
 #[derive(Default, Debug)]
 pub struct PersonalPositionState {
     /// Bump to identify PDA
@@ -92,8 +92,8 @@ impl PersonalPositionState {
                     .checked_add(amount_owed_delta.into())
                     .unwrap();
 
-                #[cfg(feature = "enable-log")]
-                msg!("update personal reward, index:{}, owed_before:{:?}, amount_owed_delta:{}, owed_after:{}, reward_growth_delta:{}, self.liquidity:{}", i, curr_reward_info.reward_amount_owed,amount_owed_delta, self.reward_infos[i].reward_amount_owed,reward_growth_delta,self.liquidity );
+               // #[cfg(feature = "enable-log")]
+              //  msg!("update personal reward, index:{}, owed_before:{:?}, amount_owed_delta:{}, owed_after:{}, reward_growth_delta:{}, self.liquidity:{}", i, curr_reward_info.reward_amount_owed,amount_owed_delta, self.reward_infos[i].reward_amount_owed,reward_growth_delta,self.liquidity );
             }
             self.reward_infos[i].growth_inside_last_x64 = reward_growth_inside;
         }

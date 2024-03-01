@@ -318,7 +318,7 @@ mod liquidity_math_test {
             let current_price = tick_math::get_sqrt_price_at_tick(current_tick).unwrap();
             let (amount0, amount1) =
                 get_delta_amounts_signed(current_tick, current_price, -6960, 4080, 100000).unwrap();
-            println!("amount0:{}, amount1:{}", amount0, amount1)
+            //println!("amount0:{}, amount1:{}", amount0, amount1)
         }
     }
 }

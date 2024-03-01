@@ -8,6 +8,7 @@ use crate::libraries::{
 use crate::states::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
+use std::cell::RefMut;
 #[cfg(feature = "enable-log")]
 use std::convert::identity;
 use std::ops::{BitAnd, BitOr, BitXor};
@@ -135,11 +136,12 @@ pub struct PoolState {
     // Unused bytes for future upgrades.
     pub last_price: u128,
     pub value: u128,
+    pub opposite_pool: Pubkey,
 
 }
 
 impl PoolState {
-    pub const LEN: usize = 1544;
+    pub const LEN: usize = 1544+32;
 
     pub fn seeds(&self) -> [&[u8]; 5] {
         [
@@ -164,13 +166,15 @@ impl PoolState {
         pool_creator: Pubkey,
         token_vault_0: Pubkey,
         token_vault_1: Pubkey,
-        amm_config: &Account<AmmConfig>,
+        amm_config: &RefMut<'_, AmmConfig>,
+        amm_config_key: Pubkey,
         token_mint_0: &InterfaceAccount<Mint>,
         token_mint_1: &InterfaceAccount<Mint>,
         observation_state_key: Pubkey,
+        other_ix_pubkey_checked: Pubkey,
     ) -> Result<()> {
         self.bump = [bump];
-        self.amm_config = amm_config.key();
+        self.amm_config = amm_config_key;
         self.owner = pool_creator.key();
         self.token_mint_0 = token_mint_0.key();
         self.token_mint_1 = token_mint_1.key();
@@ -205,6 +209,7 @@ impl PoolState {
         self.last_price = 0;
         self.value = 0;
         self.observation_key = observation_state_key;
+        self.opposite_pool = other_ix_pubkey_checked;
 
         Ok(())
     }

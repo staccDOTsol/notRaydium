@@ -19,14 +19,14 @@ pub struct DecreaseLiquidity<'info> {
 
     /// The token account for the tokenized position
     #[account(
-        constraint = nft_account.mint == personal_position.nft_mint,
+        constraint = nft_account.mint == personal_position.load()?.nft_mint,
         token::token_program = token_program,
     )]
     pub nft_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Decrease liquidity for this position
-    #[account(mut, constraint = personal_position.pool_id == pool_state.key())]
-    pub personal_position: Box<Account<'info, PersonalPositionState>>,
+    #[account(mut, constraint = personal_position.load()?.pool_id == pool_state.key())]
+    pub personal_position: AccountLoader<'info, PersonalPositionState>,
 
     #[account(mut)]
     pub pool_state: AccountLoader<'info, PoolState>,
@@ -36,13 +36,13 @@ pub struct DecreaseLiquidity<'info> {
         seeds = [
             POSITION_SEED.as_bytes(),
             pool_state.key().as_ref(),
-            &personal_position.tick_lower_index.to_be_bytes(),
-            &personal_position.tick_upper_index.to_be_bytes(),
+            &personal_position.load()?.tick_lower_index.to_be_bytes(),
+            &personal_position.load()?.tick_upper_index.to_be_bytes(),
         ],
         bump,
-        constraint = protocol_position.pool_id == pool_state.key(),
+        constraint = protocol_position.load()?.pool_id == pool_state.key(),
     )]
-    pub protocol_position: Box<Account<'info, ProtocolPositionState>>,
+    pub protocol_position: AccountLoader<'info, ProtocolPositionState>,
 
     /// Token_0 vault
     #[account(
@@ -100,14 +100,14 @@ pub struct DecreaseLiquidityV2<'info> {
 
     /// The token account for the tokenized position
     #[account(
-        constraint = nft_account.mint == personal_position.nft_mint,
+        constraint = nft_account.mint == personal_position.load()?.nft_mint,
         token::token_program = token_program,
     )]
     pub nft_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Decrease liquidity for this position
-    #[account(mut, constraint = personal_position.pool_id == pool_state.key())]
-    pub personal_position: Box<Account<'info, PersonalPositionState>>,
+    #[account(mut, constraint = personal_position.load()?.pool_id == pool_state.key())]
+    pub personal_position: AccountLoader<'info, PersonalPositionState>,
 
     #[account(mut)]
     pub pool_state: AccountLoader<'info, PoolState>,
@@ -117,13 +117,13 @@ pub struct DecreaseLiquidityV2<'info> {
         seeds = [
             POSITION_SEED.as_bytes(),
             pool_state.key().as_ref(),
-            &personal_position.tick_lower_index.to_be_bytes(),
-            &personal_position.tick_upper_index.to_be_bytes(),
+            &personal_position.load()?.tick_lower_index.to_be_bytes(),
+            &personal_position.load()?.tick_upper_index.to_be_bytes(),
         ],
         bump,
-        constraint = protocol_position.pool_id == pool_state.key(),
+        constraint = protocol_position.load()?.pool_id == pool_state.key(),
     )]
-    pub protocol_position: Box<Account<'info, ProtocolPositionState>>,
+    pub protocol_position: AccountLoader<'info, ProtocolPositionState>,
 
     /// Token_0 vault
     #[account(
@@ -253,8 +253,8 @@ pub fn decrease_liquidity_v2<'a, 'b, 'c: 'info, 'info>(
 
 pub fn decrease_liquidity<'a, 'b, 'c: 'info, 'info>(
     pool_state_loader: &'b AccountLoader<'info, PoolState>,
-    protocol_position: &'b mut Box<Account<'info, ProtocolPositionState>>,
-    personal_position: &'b mut Box<Account<'info, PersonalPositionState>>,
+    protocol_position: &'b mut AccountLoader<'info, ProtocolPositionState>,
+    personal_position: &'b mut AccountLoader<'info, PersonalPositionState>,
     token_vault_0: &'b mut Box<InterfaceAccount<'info, TokenAccount>>,
     token_vault_1: &'b mut Box<InterfaceAccount<'info, TokenAccount>>,
     tick_array_lower_loader: &'b AccountLoader<'info, TickArrayState>,
@@ -271,6 +271,9 @@ pub fn decrease_liquidity<'a, 'b, 'c: 'info, 'info>(
     amount_0_min: u64,
     amount_1_min: u64,
 ) -> Result<()> {
+    let protocol_position = &mut protocol_position.load_mut()?;
+
+    let personal_position = &mut personal_position.load_mut()?;
     // if accounts.memo_program.is_some() {
     //     let memp_program = accounts.memo_program.as_ref().unwrap().to_account_info();
     //     invoke_memo_instruction(DECREASE_MEMO_MSG, memp_program)?;
@@ -434,8 +437,8 @@ pub fn decrease_liquidity<'a, 'b, 'c: 'info, 'info>(
 
 pub fn decrease_liquidity_and_update_position<'a, 'b, 'c: 'info, 'info>(
     pool_state_loader: &AccountLoader<'info, PoolState>,
-    protocol_position: &mut Box<Account<'info, ProtocolPositionState>>,
-    personal_position: &mut Box<Account<'info, PersonalPositionState>>,
+    protocol_position: &mut RefMut<ProtocolPositionState>,
+    personal_position: &mut RefMut<PersonalPositionState>,
     tick_array_lower: &AccountLoader<'info, TickArrayState>,
     tick_array_upper: &AccountLoader<'info, TickArrayState>,
     tick_array_bitmap_extension: Option<&'c AccountInfo<'info>>,
@@ -592,7 +595,7 @@ pub fn collect_rewards<'a, 'b, 'c, 'info>(
     remaining_accounts: &[&'info AccountInfo<'info>],
     token_program: &'b Program<'info, Token>,
     token_program_2022: Option<AccountInfo<'info>>,
-    personal_position_state: &mut PersonalPositionState,
+    personal_position_state: &mut RefMut<PersonalPositionState>,
     need_reward_mint: bool,
 ) -> Result<[u64; REWARD_NUM]> {
     let mut reward_amounts: [u64; REWARD_NUM] = [0, 0, 0];
